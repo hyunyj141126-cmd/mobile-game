@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Cyber-Pulse - Arcade Action</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="relative flex items-center justify-center min-h-screen text-white select-none">
+
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI Overlay container -->
+    <div id="uiOverlay" class="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 md:p-6">
+        
+        <!-- Top Navigation / Stats Bar -->
+        <div class="grid grid-cols-3 items-start w-full">
+            <!-- Left: Health & Shield HUD -->
+            <div class="glass-panel p-4 rounded-xl max-w-xs w-full border-l-4 border-l-cyan-400 justify-self-start">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-orbitron tracking-widest text-cyan-400">HULL INTEGRITY</span>
+                    <span id="hpText" class="text-xs font-bold text-cyan-300">100%</span>
+                </div>
+                <div class="w-full bg-gray-900 rounded-full h-3 overflow-hidden border border-cyan-500/30 p-0.5 mb-2">
+                    <div id="hpBar" class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-200" style="width: 100%;"></div>
+                </div>
+
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-orbitron tracking-widest text-pink-400">ENERGY SHIELD</span>
+                    <span id="shieldText" class="text-xs font-bold text-pink-300">100%</span>
+                </div>
+                <div class="w-full bg-gray-900 rounded-full h-2 overflow-hidden border border-pink-500/30 p-0.5">
+                    <div id="shieldBar" class="bg-gradient-to-r from-pink-500 to-purple-500 h-full rounded-full transition-all duration-200" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Center: Score, Combo & Boss HP -->
+            <div class="text-center flex flex-col items-center justify-self-center w-full">
+                <div class="text-xs font-orbitron tracking-widest text-gray-400 mb-1">CURRENT SCORE</div>
+                <div id="scoreDisplay" class="text-4xl md:text-5xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-200 to-pink-500 neon-text-cyan">
+                    000000
+                </div>
+                <div id="comboContainer" class="mt-1 transition-all duration-300 opacity-0 transform scale-75">
+                    <span id="comboMultiplier" class="text-xl font-orbitron font-bold text-yellow-400 neon-text-pink">x2</span>
+                    <span class="text-xs font-orbitron text-yellow-200 ml-1">COMBO</span>
+                </div>
+
+                <!-- Boss Health HUD -->
+                <div id="bossHud" class="w-72 md:w-96 glass-panel p-3 rounded-xl border border-red-500/50 mt-2 hidden transition-all duration-300">
+                    <div class="flex justify-between items-center mb-1">
+                        <span id="bossNameText" class="text-xs font-orbitron tracking-widest text-red-500 font-bold"><i class="fas fa-skull mr-1"></i> BOSS CORE</span>
+                        <span id="bossHpText" class="text-xs font-bold text-red-400">100%</span>
+                    </div>
+                    <div class="w-full bg-gray-900 rounded-full h-3 overflow-hidden border border-red-500/40 p-0.5">
+                        <div id="bossHpBar" class="bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 h-full rounded-full transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Level, Audio & Menu Buttons -->
+            <div class="flex flex-col items-end gap-2 pointer-events-auto justify-self-end">
+                <div class="glass-panel px-4 py-2 rounded-xl text-right border-r-4 border-r-pink-500">
+                    <div class="text-xs font-orbitron text-pink-400">THREAT LEVEL</div>
+                    <div id="levelDisplay" class="text-2xl font-bold font-orbitron text-white">01</div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="soundBtn" class="glass-btn p-2.5 rounded-lg text-cyan-400 hover:text-white" title="Toggle Sound">
+                        <i class="fas fa-volume-up text-lg"></i>
+                    </button>
+                    <button id="pauseBtn" class="glass-btn p-2.5 rounded-lg text-cyan-400 hover:text-white" title="Pause Game">
+                        <i class="fas fa-pause text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Touch Controls Overlay -->
+        <div id="touchControls" class="md:hidden flex justify-between items-end w-full pb-4 pointer-events-auto opacity-70">
+            <div id="joystickZone" class="w-28 h-28 glass-panel rounded-full relative flex items-center justify-center border-cyan-500/40">
+                <div id="joystickKnob" class="w-12 h-12 rounded-full bg-cyan-400/50 border-2 border-cyan-300 shadow-lg absolute"></div>
+            </div>
+            <button id="touchFireBtn" class="w-20 h-20 glass-btn rounded-full border-2 border-pink-500/60 flex items-center justify-center text-pink-400 active:scale-95">
+                <i class="fas fa-crosshairs text-2xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Start / Game Over Screen Overlay -->
+    <div id="modalOverlay" class="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
+        
+        <!-- Start Game Card -->
+        <div id="startCard" class="glass-panel p-8 md:p-10 rounded-2xl max-w-lg w-full text-center border border-cyan-500/40 neon-border-cyan">
+            <div class="inline-block p-3 rounded-full bg-cyan-500/10 border border-cyan-400/30 mb-4">
+                <i class="fas fa-bolt text-4xl text-cyan-400"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-black font-orbitron tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-200 to-pink-500 mb-2 neon-text-cyan">
+                NEON PULSE
+            </h1>
+            <p class="text-gray-300 mb-6 font-medium text-lg">A High-Speed Cybernetic Arcade Action Shooter</p>
+            
+            <div class="bg-black/40 rounded-xl p-4 text-left mb-6 border border-gray-800 text-sm space-y-2 text-gray-300">
+                <div class="flex items-center gap-2"><i class="fas fa-keyboard text-cyan-400"></i> <span><strong class="text-white">WASD / Arrows</strong> to navigate ship</span></div>
+                <div class="flex items-center gap-2"><i class="fas fa-mouse text-pink-400"></i> <span><strong class="text-white">Mouse Aim & Left Click / Space</strong> to fire auto-pulse beam</span></div>
+                <div class="flex items-center gap-2"><i class="fas fa-shield-alt text-yellow-400"></i> <span>Dodge hazard nodes, collect weapon power-ups & survive!</span></div>
+            </div>
+
+            <button id="startBtn" class="glass-btn w-full py-4 rounded-xl text-xl font-black font-orbitron text-cyan-300 tracking-wider hover:text-white uppercase">
+                INITIATE PROTOCOL
+            </button>
+        </div>
+
+        <!-- Game Over / Leaderboard Card -->
+        <div id="gameOverCard" class="glass-panel p-8 md:p-10 rounded-2xl max-w-lg w-full text-center border border-pink-500/40 hidden">
+            <h2 class="text-3xl font-black font-orbitron text-pink-500 neon-text-pink mb-1">SYSTEM FAILURE</h2>
+            <p class="text-gray-400 mb-4">YOUR CYBERNETIC VESSEL WAS DESTROYED</p>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-black/40 p-3 rounded-xl border border-gray-800">
+                    <div class="text-xs font-orbitron text-gray-400">FINAL SCORE</div>
+                    <div id="finalScore" class="text-2xl font-bold font-orbitron text-cyan-400">0000</div>
+                </div>
+                <div class="bg-black/40 p-3 rounded-xl border border-gray-800">
+                    <div class="text-xs font-orbitron text-gray-400">HIGHEST COMBO</div>
+                    <div id="finalCombo" class="text-2xl font-bold font-orbitron text-yellow-400">x0</div>
+                </div>
+            </div>
+
+            <!-- Name Input Section -->
+            <div class="mb-4">
+                <form id="scoreForm" class="flex gap-2">
+                    <input type="text" id="playerNameInput" placeholder="ENTER OPERATOR NAME" maxlength="12" required class="bg-black/60 border border-cyan-500/50 rounded-xl px-4 py-2 font-orbitron text-sm text-cyan-300 focus:outline-none focus:border-cyan-400 flex-1 uppercase placeholder-gray-600">
+                    <button type="submit" id="saveScoreBtn" class="glass-btn px-4 py-2 rounded-xl font-orbitron font-bold text-xs text-cyan-400 hover:text-white uppercase">SAVE</button>
+                </form>
+            </div>
+
+            <!-- High Scores Section -->
+            <div class="text-left mb-6">
+                <h3 class="text-xs font-orbitron tracking-widest text-cyan-400 mb-2">TOP OPERATORS</h3>
+                <div id="leaderboardList" class="bg-black/50 rounded-xl p-3 border border-gray-800 space-y-1 max-h-36 overflow-y-auto text-sm">
+                </div>
+            </div>
+
+            <button id="restartBtn" class="glass-btn w-full py-4 rounded-xl text-xl font-black font-orbitron text-pink-400 tracking-wider hover:text-white uppercase">
+                REBOOT SYSTEM
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="script.js"></script>
+</body>
+</html>
