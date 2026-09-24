@@ -8,44 +8,28 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: beevelop/cordova:v2022.05.1
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Setup Java JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Cordova
-        run: npm install -g cordova
-
-      - name: Create Cordova Project
+      - name: Build APK via Cordova
         run: |
-          cordova create cordova_app com.neonpulse.game NeonPulse
-          cd cordova_app
+          mkdir -p /tmp/cordova_app
+          cd /tmp/cordova_app
+          cordova create myapp com.neonpulse.game NeonPulse
+          cd myapp
           cordova platform add android
           rm -rf www/*
-          cp -r ../* www/ || true
-          rm -rf www/cordova_app
-
-      - name: Build APK
-        run: |
-          cd cordova_app
+          cp -r $GITHUB_WORKSPACE/* www/
           cordova build android --no-telemetry
+          mkdir -p $GITHUB_WORKSPACE/output
+          cp platforms/android/app/build/outputs/apk/debug/app-debug.apk $GITHUB_WORKSPACE/output/NeonPulse-debug.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: NeonPulse-APK
-          path: cordova_app/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+          path: output/NeonPulse-debug.apk
